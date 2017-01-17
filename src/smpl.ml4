@@ -127,7 +127,7 @@ let smpl_tac_entry (_, tac) =
 
 let rec mk_smpl_tac db l =
   match l with
-  | tac::l -> Tacticals.New.tclORELSE (smpl_tac_entry tac) (mk_smpl_tac db l)
+  | tac::l -> Tacticals.New.tclORELSE0 (smpl_tac_entry tac) (mk_smpl_tac db l)
   | _ -> Tacticals.New.tclFAIL 0 (str "smpl " ++ str db ++ str ": no tactic applies")
 
 let smpl_tac db =
