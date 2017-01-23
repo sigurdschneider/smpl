@@ -4,8 +4,6 @@ A plugin that realizes a tactic similar to `first [ l_1 | ... | l_n ]`,
 with the twist that the list `l_1 | ... | l_n` can be extended similar to
 an eauto database (i.e. works across modules).
 
-See [the included demo file](theories/Demo.v).
+The plugin requires Coq 8.6.
 
-The code is written for Coq 8.6. To make it work with 8.5, some modules
-have to be changed. For example, CError.errorlabstrm was in a different
-module in 8.5.
+See [the included demo file](theories/Demo.v).

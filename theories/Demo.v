@@ -43,3 +43,28 @@ Qed.
 (* smpl works across modules, like eauto databases.
    This means the tactic [len_simpl] can be modularily
    extended with additional simplification tactics. *)
+
+(** Each smpl database can be configured to require progress
+of the tactic. The default is to not require progress. *)
+
+Smpl Create noprogress.
+
+Smpl Print noprogress.
+
+(** The default can be overwritten for individual tactics
+with the options [progress] and [noprogress] *)
+
+Smpl Add [progress] idtac : noprogress.
+
+Smpl Print noprogress.
+
+Goal True.
+Proof.
+  Smpl Print noprogress.
+	Fail smpl noprogress.
+	first [ idtac ].
+	Fail progress first [ idtac ].
+	Smpl Add (assert True by auto) : noprogress.
+	smpl noprogress.
+	assumption.
+Qed.

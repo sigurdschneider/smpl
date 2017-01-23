@@ -197,7 +197,7 @@ END
 let rec is_opt_set opt opts =
   match opts with
   | o::opts -> if String.compare o opt == 0 then Some true
-	       else if String.compare o (String.concat "no" [opt]) == 0 then Some false
+	       else if String.compare o (String.concat "" ["no"; opt]) == 0 then Some false
 	       else is_opt_set opt opts
   | [] -> None
 
