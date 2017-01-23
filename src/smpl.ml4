@@ -16,18 +16,38 @@ open Libobject
 open Stdarg
 open Extraargs
 open Constrarg
+open Pp
+open Genarg
+open Stdarg
+open Constrarg
+open Pcoq.Prim
+open Pcoq.Constr
+open Pcoq.Tactic
+open Tacexpr
+
 
 DECLARE PLUGIN "smpl"
 
 module StringMap = Map.Make(String)
 
-let smpl_db = ref (StringMap.empty : ((int * Tacexpr.glob_tactic_expr) list) StringMap.t)
+type smpl_db_entry = {
+  priority : int;
+  tactic : Tacexpr.glob_tactic_expr;
+  require_progress : bool option
+}
+
+type smpl_db = {
+  queue : smpl_db_entry list;
+  progress_default : bool
+}
+
+let smpl_dbs = ref (StringMap.empty : smpl_db StringMap.t)
 
 (*** Summary ***)
 
-let init    () = smpl_db := StringMap.empty
-let freeze   _ = !smpl_db
-let unfreeze t = smpl_db := t
+let init    () = smpl_dbs := StringMap.empty
+let freeze   _ = !smpl_dbs
+let unfreeze t = smpl_dbs := t
 
 let _ = Summary.declare_summary "smpl"
 	{ Summary.freeze_function   = freeze;
@@ -36,47 +56,55 @@ let _ = Summary.declare_summary "smpl"
 
 (*** Database actions ***)
 
-let intern_smpl_create db =
- try let _ = StringMap.find db (!smpl_db) in
-     CErrors.errorlabstrm "Smpl" (str "Smpl Database " ++ str db ++ str " already exists.")
- with Not_found -> smpl_db := StringMap.add db [] (!smpl_db)
+let intern_smpl_create name db =
+ try let _ = StringMap.find name (!smpl_dbs) in
+     CErrors.errorlabstrm "Smpl" (str "Smpl Database " ++ str name ++ str " already exists.")
+ with Not_found -> smpl_dbs := StringMap.add name db (!smpl_dbs)
 
-let rec insert (n,tac) l =
+let rec insert e l =
   match l with
-  | (n', tac')::l ->
-     if n < n' then
-       (n,tac)::(n',tac')::l
+  | e'::l ->
+     if e.priority < e'.priority then
+       e::e'::l
      else
-       (n',tac')::insert (n,tac) l
-  | [] -> [(n,tac)]
+       e'::insert e l
+  | [] -> [e]
 
-let intern_smpl_add entry db =
-  try let db_list = StringMap.find db (!smpl_db) in
-      let db_list' = insert entry db_list in
-      smpl_db := StringMap.add db db_list' (!smpl_db)
-  with Not_found -> CErrors.errorlabstrm "Smpl" (str "Unknown Smpl Database " ++ str db ++ str ".")
+let intern_smpl_add entry name =
+  try let db = StringMap.find name (!smpl_dbs) in
+      let db' = { db with queue = insert entry db.queue } in
+      smpl_dbs := StringMap.add name db' (!smpl_dbs)
+  with Not_found -> CErrors.errorlabstrm "Smpl" (str "Unknown Smpl Database " ++ str name ++ str ".")
 
 type smpl_action =
-  | CreateDb of string
-  | AddTac of string * (int * glob_tactic_expr)
+  | CreateDb of string * smpl_db
+  | AddTac of string * smpl_db_entry
 
 (*** Library interface ***)
 (* This code handles loading through Require (Import) *)
 
 let load_smpl_action _ (_, act) =
   match act with
-  | CreateDb db -> intern_smpl_create db
-  | AddTac (db, entry) -> intern_smpl_add entry db
+  | CreateDb (db_name, db) ->
+     intern_smpl_create db_name db
+  | AddTac (db_name, entry) -> intern_smpl_add entry db_name
 
 let cache_smpl_action (kn, act) =
   load_smpl_action 1 (kn, act)
 
+let subst_smpl_db_entry subst entry =
+  let tac' = Tacsubst.subst_tactic subst entry.tactic in
+  if tac'==entry.tactic then entry else {entry with tactic = tac'}
+
+let subst_smpl_db subst db =
+  { db with queue = List.map (subst_smpl_db_entry subst) db.queue}
+
 let subst_smpl_action (subst,act) =
   match act with
-  | CreateDb db -> act
-  | AddTac (db, (pri, tac)) ->
-     let tac' = Tacsubst.subst_tactic subst tac in
-     if tac==tac' then act else AddTac (db, (pri, tac'))
+  | CreateDb (db_name, db) ->
+     CreateDb (db_name, subst_smpl_db subst db)
+  | AddTac (db, entry) ->
+     AddTac (db, subst_smpl_db_entry subst entry)
 
 let classify_smpl_action act = Substitute act
 
@@ -86,65 +114,102 @@ let inSmpl : smpl_action -> obj =
 		   load_function = load_smpl_action;
 		   subst_function = subst_smpl_action;
 		   classify_function = classify_smpl_action; }
+
 (*** Interface ***)
 
-let smpl_add n_opt tac db =
+let smpl_add n_opt tac req_progress_opt db_name =
   let n = match n_opt with
     | Some n -> n
     | None -> 100 in
-  let act = AddTac (db, (n, tac)) in
+  let act = AddTac (db_name, {priority = n; tactic = tac; require_progress = req_progress_opt }) in
   Lib.add_anonymous_leaf (inSmpl act)
 
-let smpl_create db =
-  let act = CreateDb db in
+let smpl_create db_name db =
+  let act = CreateDb (db_name, db) in
   Lib.add_anonymous_leaf (inSmpl act)
 
 (*** Printing ***)
 
-let smpl_print_entry (pri,tac) =
+let pr_progress b =
+  str "(" ++ (if b then str "" else str "no") ++ str "progress)"
+
+let smpl_print_entry e =
   let env =
     try
       let (_, env) = Pfedit.get_current_goal_context () in
       env
     with e when CErrors.noncritical e -> Global.env ()
-  in let msg = str "Priority " ++ Pp.int pri ++ str ": " ++ Pptactic.pr_glob_tactic env tac
+  in let msg = str "Priority " ++ Pp.int e.priority ++ str " "
+	       ++ (match e.require_progress with
+		   | Some b -> pr_progress b
+		   | _ -> str "")
+	       ++ str ": "
+	       ++ Pptactic.pr_glob_tactic env e.tactic
   in Feedback.msg_info msg
 
-let smpl_print db =
-  try let db_list = StringMap.find db (!smpl_db) in
-      let a = Feedback.msg_info (str "Tactics in Smpl DB " ++ str db ++ str " (in order):") in
-      List.iter smpl_print_entry db_list; a
-  with Not_found -> CErrors.errorlabstrm "Smpl" (str "Unknown Smpl Database " ++ str db ++ str ".")
+let smpl_print db_name =
+  try let db = StringMap.find db_name (!smpl_dbs) in
+      let _ = Feedback.msg_info (str "Printing Smpl DB " ++ str db_name ++
+				   str " "  ++ pr_progress db.progress_default ++ str ".") in
+      let _ = Feedback.msg_info (str "Tactics in priority order:") in
+      List.iter smpl_print_entry db.queue; ()
+  with Not_found -> CErrors.errorlabstrm "Smpl"
+					 (str "Unknown Smpl Database " ++ str db_name ++ str ".")
 
 let smpl_print_dbs () =
   let _ = Feedback.msg_info (str "Smpl DBs:") in
-  StringMap.iter (fun key entry -> Feedback.msg_info (str key)) (!smpl_db)
+  StringMap.iter (fun key entry -> Feedback.msg_info (str key)) (!smpl_dbs)
 
 (*** Appling the tactic ***)
 
-let smpl_tac_entry (_, tac) =
-  eval_tactic tac
+let smpl_tac_entry entry =
+  eval_tactic entry.tactic
 
-let rec mk_smpl_tac db l =
+let bool_unopt opt def =
+  match opt with
+  | Some b -> b
+  | _ -> def
+
+let rec mk_smpl_tac db_name db l =
   match l with
-  | tac::l -> Tacticals.New.tclORELSE0 (smpl_tac_entry tac) (mk_smpl_tac db l)
-  | _ -> Tacticals.New.tclFAIL 0 (str "smpl " ++ str db ++ str ": no tactic applies")
+  | e::l -> if bool_unopt e.require_progress db.progress_default then
+		Tacticals.New.tclORELSE (smpl_tac_entry e) (mk_smpl_tac db_name db l)
+	      else
+		Tacticals.New.tclORELSE0 (smpl_tac_entry e) (mk_smpl_tac db_name db l)
+  | _ -> Tacticals.New.tclFAIL 0 (str "smpl " ++ str db_name ++ str ": no tactic applies")
 
-let smpl_tac db =
-  try let db_list = StringMap.find db (!smpl_db) in
-      mk_smpl_tac db db_list
-  with Not_found -> Tacticals.New.tclFAIL 0 (str "smpl: db " ++ str db ++ str " not found")
+let smpl_tac db_name =
+  try let db = StringMap.find db_name (!smpl_dbs) in
+      mk_smpl_tac db_name db db.queue
+  with Not_found -> Tacticals.New.tclFAIL 0 (str "smpl: db " ++ str db_name ++ str " not found")
 
 (*** Syntax Extensions ***)
 
+let pr_smpl_opts opts =
+  prlist (fun s -> spc () ++ str s) opts
+
+VERNAC ARGUMENT EXTEND smpl_opts
+  PRINTED BY pr_smpl_opts
+| [ "[" ne_preident_list(l) "]" ] -> [ l ]
+| [ ] -> [ [] ]
+END
+
+let rec is_opt_set opt opts =
+  match opts with
+  | o::opts -> if String.compare o opt == 0 then Some true
+	       else if String.compare o (String.concat "no" [opt]) == 0 then Some false
+	       else is_opt_set opt opts
+  | [] -> None
+
 VERNAC COMMAND EXTEND SmplCreate CLASSIFIED AS SIDEFF
-   | [ "Smpl" "Create" preident(db) ] ->
-      [ smpl_create db ]
+   | [ "Smpl" "Create" preident(db) smpl_opts(opts) ] ->
+      [ smpl_create db { queue = [];
+			 progress_default = bool_unopt (is_opt_set "progress" opts) false } ]
 END
 
 VERNAC COMMAND EXTEND SmplAdd CLASSIFIED AS SIDEFF
-   | [ "Smpl" "Add" natural_opt(n) tactic(tac) ":" preident (db) ] ->
-      [ smpl_add n (glob_tactic tac) db ]
+   | [ "Smpl" "Add" natural_opt(n) smpl_opts(opts) tactic(tac) ":" preident (db) ] ->
+      [ smpl_add n (glob_tactic tac) (is_opt_set "progress" opts) db ]
 END
 
 VERNAC COMMAND EXTEND SmplPrint CLASSIFIED AS QUERY
@@ -158,5 +223,5 @@ VERNAC COMMAND EXTEND SmplPrintAll CLASSIFIED AS QUERY
 END
 
 TACTIC EXTEND smpl
-| [ "smpl" preident(db) ] -> [ smpl_tac db ]
+   | [ "smpl" preident(db) ] -> [ smpl_tac db ]
 END
