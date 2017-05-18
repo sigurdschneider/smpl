@@ -68,3 +68,29 @@ Proof.
 	smpl noprogress.
 	assumption.
 Qed.
+
+
+(** Smpl can also create tactics that take arguments. *)
+
+Smpl Create smpl_with_arg.
+
+Smpl Print smpl_with_arg.
+
+Ltac cont x f := idtac x; idtac f;
+               match type of f with
+               | ?X -> ?Y => apply f; eapply x
+               end.
+
+(* Just at tactic functions to the database. *)
+
+Smpl Add cont : smpl_with_arg.
+
+Smpl Print smpl_with_arg.
+
+Goal (forall (T U : Type) (x:T) (f : T -> U), U).
+  intros A B x f.
+  (* smpl fails if the argument number does not match *)
+  Fail smpl smpl_with_arg.
+  Fail smpl smpl_with_arg A.
+  smpl smpl_with_arg x f.
+Qed.

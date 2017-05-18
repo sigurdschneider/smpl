@@ -24,7 +24,7 @@ open Pcoq.Prim
 open Pcoq.Constr
 open Pcoq.Tactic
 open Tacexpr
-
+open Taccoerce
 
 DECLARE PLUGIN "smpl"
 
@@ -162,25 +162,47 @@ let smpl_print_dbs () =
 
 (*** Appling the tactic ***)
 
-let smpl_tac_entry entry =
-  eval_tactic entry.tactic
+let call_tac_prepare_args loc m args =
+  let fold arg (i, vars, lfun) =
+    let id = Id.of_string ("x" ^ string_of_int i) in
+    let x = Reference (ArgVar (loc, id)) in
+    (succ i, x :: vars, Id.Map.add id (Value.of_uconstr arg) lfun)
+  in
+  let (_, args, lfun) = List.fold_right fold args (0, [], m) in
+  (args, lfun)
+
+let call_tac glob_tac args =
+  let loc = Loc.ghost in
+  let (args, bindings) = call_tac_prepare_args loc Id.Map.empty args in
+  let cont = Id.of_string "cont" in
+  Tacinterp.val_interp (default_ist ()) glob_tac
+    (fun glob_tac_val ->
+     let tac = TacCall (loc, (ArgVar (loc, cont)), args) in
+     let ist = { lfun = Id.Map.add cont glob_tac_val bindings;
+		 extra = TacStore.empty; } in
+     Tacinterp.eval_tactic_ist ist (TacArg (loc, tac)))
+
+let smpl_tac_entry entry args =
+  call_tac entry.tactic args
 
 let bool_unopt opt def =
   match opt with
   | Some b -> b
   | _ -> def
 
-let rec mk_smpl_tac db_name db l =
-  match l with
-  | e::l -> if bool_unopt e.require_progress db.progress_default then
-		Tacticals.New.tclORELSE (smpl_tac_entry e) (mk_smpl_tac db_name db l)
+let mk_smpl_tac db_name db args =
+  let rec f l =
+    match l with
+    | e::l -> if bool_unopt e.require_progress db.progress_default then
+		Tacticals.New.tclORELSE (smpl_tac_entry e args) (f l)
 	      else
-		Tacticals.New.tclORELSE0 (smpl_tac_entry e) (mk_smpl_tac db_name db l)
-  | _ -> Tacticals.New.tclFAIL 0 (str "smpl " ++ str db_name ++ str ": no tactic applies")
+		Tacticals.New.tclORELSE0 (smpl_tac_entry e args) (f l)
+    | _ -> Tacticals.New.tclFAIL 0 (str "smpl " ++ str db_name ++ str ": no tactic applies")
+  in f db.queue
 
-let smpl_tac db_name =
+let smpl_tac db_name args =
   try let db = StringMap.find db_name (!smpl_dbs) in
-      mk_smpl_tac db_name db db.queue
+      mk_smpl_tac db_name db args
   with Not_found -> Tacticals.New.tclFAIL 0 (str "smpl: db " ++ str db_name ++ str " not found")
 
 (*** Syntax Extensions ***)
@@ -223,5 +245,5 @@ VERNAC COMMAND EXTEND SmplPrintAll CLASSIFIED AS QUERY
 END
 
 TACTIC EXTEND smpl
-   | [ "smpl" preident(db) ] -> [ smpl_tac db ]
+   | [ "smpl" preident(db) uconstr_list(args) ] -> [ smpl_tac db args ]
 END
