@@ -19,3 +19,4 @@ Makefile.coq.conf
 *.aux
 *.d.byte
 *.bak
+.merlin
