@@ -1,4 +1,4 @@
-Declare ML Module "smpl_plugin".
+Require Import Smpl.
 
 (** Smpl provides extendable tactics that are applied in order until the first succeeds. *)
 Smpl Create len.

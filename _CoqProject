@@ -4,4 +4,5 @@
 src/smpl_plugin.mlpack
 src/smpl.ml4
 
+theories/Smpl.v
 theories/Demo.v
