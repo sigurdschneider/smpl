@@ -24,7 +24,6 @@ open Extraargs
 open Pp
 open Tacarg
 open Genarg
-open Stdarg
 open Ltac_plugin
 open Pcoq.Prim
 open Pcoq.Constr
