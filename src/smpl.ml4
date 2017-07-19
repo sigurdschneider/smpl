@@ -1,10 +1,16 @@
 (*i camlp4deps: "parsing/grammar.cma" i*)
 (*i camlp4use: "pa_extend.cmp" i*)
-(* Written for LVC by Sigurd Schneider (2016) *)
+(* Written for LVC by Sigurd Schneider (2016-2017) *)
+
+open API
+open Grammar_API
+open Util
+open Misctypes
 open Term
 open Declarations
 open Pp
 open Names
+open Ltac_plugin
 open Tacexpr
 open Misctypes
 open Hook
@@ -15,18 +21,16 @@ open Tacticals
 open Libobject
 open Stdarg
 open Extraargs
-open Constrarg
 open Pp
+open Tacarg
 open Genarg
 open Stdarg
-open Constrarg
+open Ltac_plugin
 open Pcoq.Prim
 open Pcoq.Constr
-open Pcoq.Tactic
-open Tacexpr
 open Taccoerce
 
-DECLARE PLUGIN "smpl"
+DECLARE PLUGIN "smpl_plugin"
 
 module StringMap = Map.Make(String)
 
@@ -58,7 +62,7 @@ let _ = Summary.declare_summary "smpl"
 
 let intern_smpl_create name db =
  try let _ = StringMap.find name (!smpl_dbs) in
-     CErrors.errorlabstrm "Smpl" (str "Smpl Database " ++ str name ++ str " already exists.")
+     CErrors.user_err (~hdr:"Smpl") (str "Smpl Database " ++ str name ++ str " already exists.")
  with Not_found -> smpl_dbs := StringMap.add name db (!smpl_dbs)
 
 let rec insert e l =
@@ -74,7 +78,7 @@ let intern_smpl_add entry name =
   try let db = StringMap.find name (!smpl_dbs) in
       let db' = { db with queue = insert entry db.queue } in
       smpl_dbs := StringMap.add name db' (!smpl_dbs)
-  with Not_found -> CErrors.errorlabstrm "Smpl" (str "Unknown Smpl Database " ++ str name ++ str ".")
+  with Not_found -> CErrors.user_err (~hdr:"Smpl") (str "Unknown Smpl Database " ++ str name ++ str ".")
 
 type smpl_action =
   | CreateDb of string * smpl_db
@@ -136,7 +140,7 @@ let pr_progress b =
 let smpl_print_entry e =
   let env =
     try
-      let (_, env) = Pfedit.get_current_goal_context () in
+      let (_, env) = Pfedit.get_current_context () in
       env
     with e when CErrors.noncritical e -> Global.env ()
   in let msg = str "Priority " ++ Pp.int e.priority ++ str " "
@@ -147,14 +151,19 @@ let smpl_print_entry e =
 	       ++ Pptactic.pr_glob_tactic env e.tactic
   in Feedback.msg_info msg
 
+let smpl_db_exists db_name =
+  try let db = StringMap.find db_name (!smpl_dbs) in db
+  with Not_found -> CErrors.user_err (~hdr:"Smpl")
+				     (str "Unknown Smpl Database " ++ str db_name ++ str ".")
+
 let smpl_print db_name =
   try let db = StringMap.find db_name (!smpl_dbs) in
       let _ = Feedback.msg_info (str "Printing Smpl DB " ++ str db_name ++
 				   str " "  ++ pr_progress db.progress_default ++ str ".") in
       let _ = Feedback.msg_info (str "Tactics in priority order:") in
       List.iter smpl_print_entry db.queue; ()
-  with Not_found -> CErrors.errorlabstrm "Smpl"
-					 (str "Unknown Smpl Database " ++ str db_name ++ str ".")
+  with Not_found -> CErrors.user_err (~hdr:"Smpl")
+				     (str "Unknown Smpl Database " ++ str db_name ++ str ".")
 
 let smpl_print_dbs () =
   let _ = Feedback.msg_info (str "Smpl DBs:") in
@@ -162,25 +171,24 @@ let smpl_print_dbs () =
 
 (*** Appling the tactic ***)
 
-let call_tac_prepare_args loc m args =
+let call_tac_prepare_args m args =
   let fold arg (i, vars, lfun) =
     let id = Id.of_string ("x" ^ string_of_int i) in
-    let x = Reference (ArgVar (loc, id)) in
+    let x = Reference (ArgVar (Loc.tag id)) in
     (succ i, x :: vars, Id.Map.add id (Value.of_uconstr arg) lfun)
   in
   let (_, args, lfun) = List.fold_right fold args (0, [], m) in
   (args, lfun)
 
 let call_tac glob_tac args =
-  let loc = Loc.ghost in
-  let (args, bindings) = call_tac_prepare_args loc Id.Map.empty args in
+  let (args, bindings) = call_tac_prepare_args Id.Map.empty args in
   let cont = Id.of_string "cont" in
   Tacinterp.val_interp (default_ist ()) glob_tac
     (fun glob_tac_val ->
-     let tac = TacCall (loc, (ArgVar (loc, cont)), args) in
+     let tac = TacCall (Loc.tag ((ArgVar (Loc.tag cont)), args)) in
      let ist = { lfun = Id.Map.add cont glob_tac_val bindings;
 		 extra = TacStore.empty; } in
-     Tacinterp.eval_tactic_ist ist (TacArg (loc, tac)))
+     Tacinterp.eval_tactic_ist ist (TacArg (Loc.tag tac)))
 
 let smpl_tac_entry entry args =
   call_tac entry.tactic args
@@ -216,6 +224,15 @@ VERNAC ARGUMENT EXTEND smpl_opts
 | [ ] -> [ [] ]
 END
 
+let pr_smpldb _prc _prlc _prt s = str s
+
+ARGUMENT EXTEND smpldb
+  TYPED AS preident
+  PRINTED BY pr_smpldb
+| [ preident(i) ] -> [ let _ = smpl_db_exists i in i ]
+END
+
+
 let rec is_opt_set opt opts =
   match opts with
   | o::opts -> if String.compare o opt == 0 then Some true
@@ -245,5 +262,5 @@ VERNAC COMMAND EXTEND SmplPrintAll CLASSIFIED AS QUERY
 END
 
 TACTIC EXTEND smpl
-   | [ "smpl" preident(db) uconstr_list(args) ] -> [ smpl_tac db args ]
+   | [ "smpl" smpldb(db) uconstr_list(args) ] -> [ smpl_tac db args ]
 END

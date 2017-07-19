@@ -12,7 +12,7 @@ clean:
 	rm -f $(COQMAKEFILE)
 
 $(COQMAKEFILE): Makefile 
-	$(COQBIN)coq_makefile -f Make -o Makefile.coq
+	$(COQBIN)coq_makefile -f _CoqProject -o Makefile.coq
 
 %.vo:: $(COQMAKEFILE)
 	make -f $(COQMAKEFILE) -j$(CORES) $@

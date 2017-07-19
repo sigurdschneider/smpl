@@ -1,9 +1,14 @@
-Declare ML Module "smpl".
+Declare ML Module "smpl_plugin".
 
 (** Smpl provides extendable tactics that are applied in order until the first succeeds. *)
 Smpl Create len.
 
 Ltac len_simpl := smpl len; repeat (smpl len).
+
+(*
+Smpl warns you when you used undeclared databases in tactics.
+Ltac test := smpl foo.
+*)
 
 Require Import List.
 

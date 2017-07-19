@@ -1,1 +1,0 @@
--R theories Smpl -I src src/smpl.ml4 theories/Demo.v

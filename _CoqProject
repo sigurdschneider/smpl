@@ -1,2 +1,7 @@
 -R theories Smpl
 -I src
+
+src/smpl_plugin.mlpack
+src/smpl.ml4
+
+theories/Demo.v
