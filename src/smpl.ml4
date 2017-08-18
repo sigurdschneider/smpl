@@ -2,8 +2,6 @@
 (*i camlp4use: "pa_extend.cmp" i*)
 (* Written for LVC by Sigurd Schneider (2016-2017) *)
 
-open API
-open Grammar_API
 open Util
 open Misctypes
 open Term
