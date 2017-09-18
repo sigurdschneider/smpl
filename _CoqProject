@@ -1,4 +1,4 @@
--R theories Smpl
+-R theories smpl
 -I src
 
 src/smpl_plugin.mlpack
