@@ -11,7 +11,7 @@ clean:
 	-$(MAKE) -f $(COQMAKEFILE) clean
 	rm -f $(COQMAKEFILE)
 
-$(COQMAKEFILE): Makefile 
+$(COQMAKEFILE): Makefile _CoqProject
 	$(COQBIN)coq_makefile -f _CoqProject -o Makefile.coq
 
 %.vo:: $(COQMAKEFILE)
