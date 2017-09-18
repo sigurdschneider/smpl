@@ -20,12 +20,12 @@ open Libobject
 open Stdarg
 open Extraargs
 open Pp
-open Tacarg
 open Genarg
 open Ltac_plugin
 open Pcoq.Prim
 open Pcoq.Constr
 open Taccoerce
+open Constrarg
 
 DECLARE PLUGIN "smpl_plugin"
 
@@ -59,7 +59,7 @@ let _ = Summary.declare_summary "smpl"
 
 let intern_smpl_create name db =
  try let _ = StringMap.find name (!smpl_dbs) in
-     CErrors.user_err (~hdr:"Smpl") (str "Smpl Database " ++ str name ++ str " already exists.")
+     CErrors.errorlabstrm "Smpl" (str "Smpl Database " ++ str name ++ str " already exists.")
  with Not_found -> smpl_dbs := StringMap.add name db (!smpl_dbs)
 
 let rec insert e l =
@@ -75,7 +75,7 @@ let intern_smpl_add entry name =
   try let db = StringMap.find name (!smpl_dbs) in
       let db' = { db with queue = insert entry db.queue } in
       smpl_dbs := StringMap.add name db' (!smpl_dbs)
-  with Not_found -> CErrors.user_err (~hdr:"Smpl") (str "Unknown Smpl Database " ++ str name ++ str ".")
+  with Not_found -> CErrors.errorlabstrm "Smpl" (str "Unknown Smpl Database " ++ str name ++ str ".")
 
 type smpl_action =
   | CreateDb of string * smpl_db
@@ -150,7 +150,7 @@ let smpl_print_entry e =
 
 let smpl_db_exists db_name =
   try let db = StringMap.find db_name (!smpl_dbs) in db
-  with Not_found -> CErrors.user_err (~hdr:"Smpl")
+  with Not_found -> CErrors.errorlabstrm "Smpl"
 				     (str "Unknown Smpl Database " ++ str db_name ++ str ".")
 
 let smpl_print db_name =
@@ -159,7 +159,7 @@ let smpl_print db_name =
 				   str " "  ++ pr_progress db.progress_default ++ str ".") in
       let _ = Feedback.msg_info (str "Tactics in priority order:") in
       List.iter smpl_print_entry db.queue; ()
-  with Not_found -> CErrors.user_err (~hdr:"Smpl")
+  with Not_found -> CErrors.errorlabstrm "Smpl"
 				     (str "Unknown Smpl Database " ++ str db_name ++ str ".")
 
 let smpl_print_dbs () =
@@ -171,7 +171,7 @@ let smpl_print_dbs () =
 let call_tac_prepare_args m args =
   let fold arg (i, vars, lfun) =
     let id = Id.of_string ("x" ^ string_of_int i) in
-    let x = Reference (ArgVar (Loc.tag id)) in
+    let x = Reference (ArgVar (Loc.ghost, id)) in
     (succ i, x :: vars, Id.Map.add id (Value.of_uconstr arg) lfun)
   in
   let (_, args, lfun) = List.fold_right fold args (0, [], m) in
@@ -182,10 +182,10 @@ let call_tac glob_tac args =
   let cont = Id.of_string "cont" in
   Tacinterp.val_interp (default_ist ()) glob_tac
     (fun glob_tac_val ->
-     let tac = TacCall (Loc.tag ((ArgVar (Loc.tag cont)), args)) in
+     let tac = TacCall (Loc.ghost, (ArgVar (Loc.ghost, cont)), args) in
      let ist = { lfun = Id.Map.add cont glob_tac_val bindings;
 		 extra = TacStore.empty; } in
-     Tacinterp.eval_tactic_ist ist (TacArg (Loc.tag tac)))
+     Tacinterp.eval_tactic_ist ist (TacArg (Loc.ghost, tac)))
 
 let smpl_tac_entry entry args =
   call_tac entry.tactic args
