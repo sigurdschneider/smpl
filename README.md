@@ -1,8 +1,21 @@
 # Coq Plugin smpl
 
-A plugin that realizes a tactic similar to `first [ l_1 | ... | l_n]`,
+Smpl is useful for proof automation in Coq. Smpl provides named lists
+of tactics to which tactics can be added with Coq commands. A special
+tactic called 'smpl foo' executes the tactics in the lists named foo
+in order, until one of them succeeds. Smpl works across modules by
+merging tactics from all imports according to a priority number that
+can be provided upon addition. Smpl thus allows to modify the behavior
+of a tactic after it is defined in a convenient and modular way.
+
+Put differently, the realizes a that behaves similarily to 
+
+    first [ l_1 | ... | l_n]
+    
+    
 with the twist that the list `l_1 | ... | l_n` can be extended
-similar to an eauto database (i.e. works across modules).
+in a fashion akin to eauto database (i.e. adding tactics works
+across modules by merging the lists).
 
 The plugin is available for Coq 8.6.1 in branch v8.6 and for 8.7 in
 branch master.
