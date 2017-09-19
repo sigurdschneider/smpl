@@ -14,6 +14,5 @@ clean:
 $(COQMAKEFILE): Makefile _CoqProject
 	$(COQBIN)coq_makefile -f _CoqProject -o Makefile.coq
 
-%.vo:: $(COQMAKEFILE)
-	make -f $(COQMAKEFILE) -j$(CORES) $@
-
+%:
+	-$(MAKE) -f $(COQMAKEFILE) $@
