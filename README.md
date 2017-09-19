@@ -8,11 +8,10 @@ merging tactics from all imports according to a priority number that
 can be provided upon addition. Smpl thus allows to modify the behavior
 of a tactic after it is defined in a convenient and modular way.
 
-Put differently, the realizes a that behaves similarily to 
+Put differently, Smpl realizes a tactic that behaves similarily to 
 
     first [ l_1 | ... | l_n]
-    
-    
+        
 with the twist that the list `l_1 | ... | l_n` can be extended
 in a fashion akin to eauto database (i.e. adding tactics works
 across modules by merging the lists).
