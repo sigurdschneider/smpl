@@ -25,11 +25,23 @@ use the plugin.
 ## Installation
 
 If you are familiar with Coq plugins, this plugin will be no surprise
-to you.
+to you. Simply download the plugin, either by downloading the .zip 
+archive here, or cloning the repository. The following command then
+install the plugin into the user-contrib directory of your Coq 
+installation.
 
-If you want to use the plugin you can clone it to an appropriate
-place in your project directory.
-You then need to enter the directory and build it:
+   cd smpl
+   make
+   make install
+
+In any of your files, you can then simply import the plugin via
+
+    Require Import smpl.Smpl.
+
+### Including smpl in your project 
+
+If you want to place smpl in your project, you can place it
+in a directory of your project.
 
     git clone https://github.com/sigurdschneider/smpl.git
     cd smpl
@@ -44,20 +56,11 @@ To use the plugin, you must add the following to your _CoqProject file:
 
     -R smpl/theories smpl
     -I smpl/src
+    
+**Important** make sure that smpl is not covered by any other recursive
+import command, such as `-R . Foo` as this will result in different module
+names and not work.
 
 In any of your files, you can then simply import the plugin via
 
     Require Import smpl.Smpl.
-
-
-### Optional: Using git submodules
-
-If you are using git for source management, you can include smpl
-as a submodule:
-
-    git submodule add https://github.com/sigurdschneider/smpl smpl
-    cd smpl
-    make
-
-This will create .gitmodules and inform git that the the directory smpl
-belongs to a different git repository.
