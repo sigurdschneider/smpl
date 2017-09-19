@@ -38,7 +38,7 @@ In any of your files, you can then simply import the plugin via
 
     Require Import smpl.Smpl.
 
-### Including smpl in your project 
+### Alternative: Including smpl in your project 
 
 If you want to place smpl in your project, you can place it
 in a directory of your project.
