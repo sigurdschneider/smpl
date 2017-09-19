@@ -5,7 +5,7 @@ ifneq "$(COQBIN)" ""
 endif
 
 all: $(COQMAKEFILE)
-		+$(MAKE) -f $(COQMAKEFILE) $@
+	+$(MAKE) -f $(COQMAKEFILE) $@
 
 clean:
 	-$(MAKE) -f $(COQMAKEFILE) clean
