@@ -11,7 +11,7 @@ Ltac len_simpl := smpl len; repeat (smpl len).
 Smpl fails at parsing if an undeclared databases is used in tactics.
 This is possible, because a tactic can only use a database if it has been
 created with the command [Smpl Create] before.
-[smpl foo]
+The following tactic, for example, will fail: [smpl foo]
  *)
 
 Goal False.
@@ -20,8 +20,6 @@ Goal False.
 Abort.
 
 Require Import List.
-
-Notation "f ⊝ L" := (List.map f L) (at level 50, L at level 50, left associativity).
 
 Ltac len_simpl_app :=
   match goal with
@@ -35,6 +33,7 @@ Smpl Add len_simpl_app : len.
 Smpl Print len.
 
 (* Specifying an optional priority can be used to insert tactics at a certain position. *)
+Notation "f ⊝ L" := (List.map f L) (at level 50, L at level 50, left associativity).
 
 Ltac len_simpl_map :=
   match goal with
@@ -46,7 +45,7 @@ Smpl Add 99 len_simpl_map : len.
 
 Smpl Print len.
 
-(* At this point [len simpl] behaves like [ first [ len_simpl_map | len_simpl_app ] ] *)
+(* At this point, [len simpl] behaves like [ first [ len_simpl_map | len_simpl_app ] ] *)
 
 Hint Extern 0 => len_simpl.
 
@@ -58,7 +57,8 @@ Qed.
 
 (** smpl works across modules, like eauto databases.
    This means the tactic [len_simpl] can be modularily
-   extended with additional simplification tactics. *)
+   extended with additional simplification tactics.
+ *)
 
 (* Like Ltac, smpl does not work across sections: *)
 Section Foo.
@@ -75,16 +75,18 @@ Section Foo.
 End Foo.
 
 Goal False.
-  (* Ltac definition no available  *)
+  (* Ltac definition [bar] not available  *)
   Fail bar.
 Abort.
 
-(* Note that bar is not in the tactics anymore *)
+(* Note that the tactic [bar] is not in len anymore,
+   because its definition did not survive the section. *)
 Smpl Print len.
 
 
 (** Each smpl database can be configured to wrap added tactics with
-a call to the tactic [progress]. The default is to not wrap with [progress]. *)
+a call to the tactic [progress]. The default is to not wrap with [progress].
+This is a convenience feature. *)
 
 Smpl Create example1.
 Smpl Create example2 [noprogress].
