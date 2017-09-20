@@ -29,9 +29,9 @@ We provide an opam repository from which smpl can be installed for
 Coq 8.6.1 and 8.7+beta1. To install from the opam repository use
 the following commands:
 
-  opam repo add opam-smpl https://github.com/sigurdschneider/opam-additions.git
-  opam update
-  opam install smpl
+    opam repo add opam-smpl https://github.com/sigurdschneider/opam-additions.git
+    opam update
+    opam install smpl
 
 ### Manual Installation
 
@@ -41,9 +41,9 @@ here, or cloning the repository. Assuming smpl was extracted/cloned to
 directory `smpl`, the following commands install the plugin into the
 user-contrib directory of your Coq installation.
 
-   cd smpl
-   make
-   make install
+    cd smpl
+    make
+    make install
 
 In any of your Coq files, smpl can then be imported via
 
