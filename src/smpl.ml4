@@ -3,19 +3,12 @@
 (* Written for LVC by Sigurd Schneider (2016-2017) *)
 
 open Util
-open Misctypes
-open Term
-open Declarations
-open Pp
 open Names
 open Ltac_plugin
 open Tacexpr
 open Misctypes
-open Hook
-open Hints
 open Tacintern
 open Tacinterp
-open Tacticals
 open Libobject
 open Stdarg
 open Extraargs
@@ -24,7 +17,6 @@ open Tacarg
 open Genarg
 open Ltac_plugin
 open Pcoq.Prim
-open Pcoq.Constr
 open Taccoerce
 
 DECLARE PLUGIN "smpl_plugin"
