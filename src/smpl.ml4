@@ -163,7 +163,7 @@ let smpl_print_dbs () =
 let call_tac_prepare_args m args =
   let fold arg (i, vars, lfun) =
     let id = Id.of_string ("x" ^ string_of_int i) in
-    let x = Reference (ArgVar (Loc.tag id)) in
+    let x = Reference (ArgVar (CAst.make id)) in
     (succ i, x :: vars, Id.Map.add id (Value.of_uconstr arg) lfun)
   in
   let (_, args, lfun) = List.fold_right fold args (0, [], m) in
@@ -174,7 +174,7 @@ let call_tac glob_tac args =
   let cont = Id.of_string "cont" in
   Tacinterp.val_interp (default_ist ()) glob_tac
     (fun glob_tac_val ->
-     let tac = TacCall (Loc.tag ((ArgVar (Loc.tag cont)), args)) in
+     let tac = TacCall (Loc.tag ((ArgVar (CAst.make cont)), args)) in
      let ist = { lfun = Id.Map.add cont glob_tac_val bindings;
 		 extra = TacStore.empty; } in
      Tacinterp.eval_tactic_ist ist (TacArg (Loc.tag tac)))
