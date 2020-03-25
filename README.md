@@ -20,18 +20,18 @@ across modules by merging the lists).
 use the plugin.**
 
 ## Availability
-The plugin is available for Coq 8.6.1 in branch v8.6 and for 8.7 in
-branch v8.7.
+
+The plugin is available for various versions of Coq in the different branches of this repository.
 
 ## Installation
 
-We provide an opam repository from which smpl can be installed for
-Coq 8.6.1 and 8.7+beta1. To install from the opam repository use
-the following commands:
+We provide an opam repository from which smpl can be installed. 
+To install from the opam repository for Coq 8.10.2 use the following 
+commands:
 
-    opam repo add opam-smpl https://github.com/sigurdschneider/opam-additions.git
+    opam repo add psl-opam-repository https://github.com/uds-psl/psl-opam-repository.git
     opam update
-    opam install smpl
+    opam install coq-smpl.8.10.2
 
 ### Manual Installation
 
@@ -57,13 +57,9 @@ examples.
 If you want to place smpl's sources in your project, you can place it
 in a directory of your project.
 
-    git clone -v v8.6 https://github.com/sigurdschneider/smpl.git
+    git clone -v coq-8.10 https://github.com/uds-psl/smpl.git
     cd smpl
     make
-
-**Note** that you need to do
-
-    git clone -b v8.7 https://github.com/sigurdschneider/smpl.git
 
 if you are already using Coq 8.7+beta1.
 
