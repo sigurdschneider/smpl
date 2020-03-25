@@ -22,3 +22,6 @@ Makefile.coq.conf
 .merlin
 *.cmt
 *.cmti
+src/smpl.ml
+*.vok
+*.vos
