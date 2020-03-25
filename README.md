@@ -31,7 +31,7 @@ commands:
 
     opam repo add psl-opam-repository https://github.com/uds-psl/psl-opam-repository.git
     opam update
-    opam install coq-smpl.8.10.2
+    opam install coq-smpl.8.11
 
 ### Manual Installation
 
@@ -57,7 +57,7 @@ examples.
 If you want to place smpl's sources in your project, you can place it
 in a directory of your project.
 
-    git clone -v coq-8.10 https://github.com/uds-psl/smpl.git
+    git clone -v coq-8.11 https://github.com/uds-psl/smpl.git
     cd smpl
     make
 
