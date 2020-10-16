@@ -234,9 +234,10 @@ let rec is_opt_set opt opts =
 	       else is_opt_set opt opts
   | [] -> None
 
+let classify_smpl_create _ = Vernacextend.VtSideff ([], Vernacextend.VtNow)
 }
 
-VERNAC COMMAND EXTEND SmplCreate CLASSIFIED AS SIDEFF
+VERNAC COMMAND EXTEND SmplCreate CLASSIFIED BY {classify_smpl_create}
    | [ "Smpl" "Create" preident(db) smpl_opts(opts) ] ->
       { smpl_create db { queue = [];
 			 progress_default = bool_unopt (is_opt_set "progress" opts) false } }
