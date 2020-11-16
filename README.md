@@ -1,4 +1,5 @@
 # Coq Plugin smpl
+![Test compilation](https://github.com/uds-psl/smpl/workflows/Test%20compilation/badge.svg)
 
 Smpl is useful for proof automation in Coq. Smpl provides named lists
 of tactics to which tactics can be added with Coq commands. A special
@@ -26,7 +27,7 @@ The plugin is available for various versions of Coq in the different branches of
 ## Installation
 
 We provide an opam repository from which smpl can be installed. 
-To install from the opam repository for Coq 8.10.2 use the following 
+To install from the opam repository for Coq 8.10.2 and onwards use the following 
 commands:
 
     opam repo add psl-opam-repository https://github.com/uds-psl/psl-opam-repository.git
