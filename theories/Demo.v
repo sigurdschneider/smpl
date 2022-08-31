@@ -47,7 +47,7 @@ Smpl Print len.
 
 (* At this point, [len simpl] behaves like [ first [ len_simpl_map | len_simpl_app ] ] *)
 
-Hint Extern 0 => len_simpl.
+Global Hint Extern 0 => len_simpl : len.
 
 Goal (forall X (f:X->X) L L', length (f ⊝ (L ++ L')) = length (f ⊝ L ++ f ⊝ L')).
   eauto.

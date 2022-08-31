@@ -2,7 +2,7 @@
 -I src
 
 src/smpl_plugin.mlpack
-src/smpl.ml4
+src/smpl.mlg
 
 theories/Smpl.v
 theories/Demo.v
